@@ -13,13 +13,23 @@ var shioriProcess: Process
 var shioriStdin: Stream
 var shioriStdout: Stream
 
+proc writeExceptionToFile(e: ref Exception): void =
+  let f = open("shiori_proxy_error.log", fmAppend)
+  f.writeLine(e.msg)
+  # f.writeLine(e.stackTrace())
+  f.close()
+
 proc loadConfig(): void =
     let configFile = newFileStream("shiori_proxy.yml")
     load(configFile, config)
     configFile.close()
 
 proc openShioriProcess(): void =
-    shioriProcess = startProcess(config.command[0], ".", config.command[1..^1], options = {poDemon})
+    try:
+      shioriProcess = startProcess(config.command[0], ".", config.command[1..^1], options = {poDemon})
+    except Exception as e:
+      writeExceptionToFile(e)
+      raise e
     shioriStdin = shioriProcess.inputStream
     shioriStdout = shioriProcess.outputStream
 
