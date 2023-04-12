@@ -13,54 +13,72 @@ var shioriProcess: Process
 var shioriStdin: Stream
 var shioriStdout: Stream
 
-proc writeExceptionToFile(e: ref Exception): void =
-  let f = open("shiori_proxy_error.log", fmAppend)
-  f.writeLine(e.msg)
-  # f.writeLine(e.stackTrace())
+proc writeToFile(msg: string): void =
+  let f = open("shiori_proxy.log", fmAppend)
+  f.writeLine(msg)
   f.close()
 
 proc loadConfig(): void =
-    let configFile = newFileStream("shiori_proxy.yml")
-    load(configFile, config)
-    configFile.close()
+    try:
+      let configFile = newFileStream("shiori_proxy.yml")
+      load(configFile, config)
+      configFile.close()
+    except Exception as e:
+      writeToFile(e.msg)
+      raise e
 
 proc openShioriProcess(): void =
     try:
       shioriProcess = startProcess(config.command[0], ".", config.command[1..^1], options = {poDemon})
     except Exception as e:
-      writeExceptionToFile(e)
+      writeToFile(e.msg)
       raise e
     shioriStdin = shioriProcess.inputStream
     shioriStdout = shioriProcess.outputStream
 
 shioriLoadCallback = proc (dirpath: string): bool =
-    loadConfig()
-    openShioriProcess()
+    try:
+      writeToFile("load")
+      loadConfig()
+      openShioriProcess()
 
-    shioriStdin.writeLine("LOAD SHIORIPROXY/1.0")
-    shioriStdin.writeLine(dirpath)
-    shioriStdin.flush()
-    let value = shioriStdout.readLine()
-    value == "1"
+      shioriStdin.writeLine("LOAD SHIORIPROXY/1.0")
+      shioriStdin.writeLine(dirpath)
+      shioriStdin.flush()
+      let value = shioriStdout.readLine()
+      value == "1"
+    except Exception as e:
+      writeToFile(e.msg)
+      raise e
 
 shioriRequestCallback = proc (requestStr: string): string =
-    shioriStdin.writeLine("REQUEST SHIORIPROXY/1.0")
-    shioriStdin.write(requestStr)
-    shioriStdin.flush()
-    var line: string = ""
-    var lines: seq[string] = @[]
-    while shioriStdout.readLine(line):
-        lines.add(line)
-        if line.len() == 0:
-            break
-    lines.join("\n")
+    try:
+      writeToFile("request")
+      shioriStdin.writeLine("REQUEST SHIORIPROXY/1.0")
+      shioriStdin.write(requestStr)
+      shioriStdin.flush()
+      var line: string = ""
+      var lines: seq[string] = @[]
+      while shioriStdout.readLine(line):
+          lines.add(line)
+          if line.len() == 0:
+              break
+      lines.join("\n")
+    except Exception as e:
+      writeToFile(e.msg)
+      raise e
 
 shioriUnloadCallback = proc (): bool =
-    shioriStdin.writeLine("UNLOAD SHIORIPROXY/1.0")
-    shioriStdin.flush()
-    let value = shioriStdout.readLine()
-    shioriProcess.terminate()
-    value == "1"
+    try:
+      writeToFile("unload")
+      shioriStdin.writeLine("UNLOAD SHIORIPROXY/1.0")
+      shioriStdin.flush()
+      let value = shioriStdout.readLine()
+      shioriProcess.terminate()
+      value == "1"
+    except Exception as e:
+      writeToFile(e.msg)
+      raise e
 
 when appType != "lib":
     main("C:\\ssp\\ghost\\nim\\", @[
