@@ -15,7 +15,7 @@ requires "shiori_charset_convert"
 requires "yaml"
 
 task dll32, "build 32bit dll":
-    exec "nim c --cc:vcc --app:lib -d:release --cpu:i386 shiori_proxy.nim"
+    exec "nim c --app:lib -d:release --cpu:i386 shiori_proxy.nim"
 
 task example, "run example":
     exec "nim c example/myshiori.nim"
