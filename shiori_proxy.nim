@@ -33,7 +33,7 @@ shioriLoadCallback = proc (dirpath: string): bool =
     let value = shioriStdout.readLine()
     value == "1"
 
-shioriRequestCallback = autoConvertShioriMessageCharset(proc (requestStr: string): string =
+shioriRequestCallback = proc (requestStr: string): string =
     shioriStdin.writeLine("REQUEST SHIORIPROXY/1.0")
     shioriStdin.write(requestStr)
     shioriStdin.flush()
@@ -44,7 +44,6 @@ shioriRequestCallback = autoConvertShioriMessageCharset(proc (requestStr: string
         if line.len() == 0:
             break
     lines.join("\n")
-)
 
 shioriUnloadCallback = proc (): bool =
     shioriStdin.writeLine("UNLOAD SHIORIPROXY/1.0")
